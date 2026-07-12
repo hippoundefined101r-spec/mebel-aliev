@@ -178,6 +178,55 @@ body{font-family:'Inter',sans-serif;background:var(--wh);color:var(--tx);overflo
   .feats{grid-template-columns:repeat(4,1fr);}
   .port-grid{grid-template-columns:repeat(3,1fr);}
 }
+
+/* ─── UPGRADES ─── */
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease;}
+.reveal.vis{opacity:1;transform:translateY(0);}
+
+/* budget filter */
+.budget-row{display:flex;gap:7px;overflow-x:auto;margin-bottom:18px;padding-bottom:2px;}
+.budget-row::-webkit-scrollbar{display:none;}
+.bcat{flex-shrink:0;padding:6px 13px;border:1px dashed var(--ln);border-radius:20px;font-size:10px;letter-spacing:1px;color:var(--ts);cursor:pointer;transition:all .2s;white-space:nowrap;background:transparent;font-family:'Inter',sans-serif;}
+.bcat.active{border-style:solid;border-color:var(--br);color:var(--brd);background:var(--cr2);}
+
+/* QUIZ */
+.quiz{background:linear-gradient(160deg,#5C4A3A 0%,#3E3128 100%);padding:52px 24px;color:#F7F3EE;position:relative;overflow:hidden;}
+.quiz::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:rgba(200,169,110,0.08);}
+.quiz-eye{font-size:10px;letter-spacing:3px;color:#C8A96E;text-transform:uppercase;margin-bottom:8px;}
+.quiz-title{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:300;line-height:1.2;margin-bottom:6px;}
+.quiz-title em{font-style:italic;color:#E8D5A8;}
+.quiz-sub{font-size:12px;color:rgba(247,243,238,0.55);margin-bottom:28px;line-height:1.6;}
+.quiz-step{display:none;}
+.quiz-step.active{display:block;animation:qfade .4s ease;}
+@keyframes qfade{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
+.quiz-q{font-size:14px;font-weight:500;margin-bottom:16px;color:#F7F3EE;}
+.quiz-opts{display:flex;flex-direction:column;gap:9px;}
+.qopt{background:rgba(255,255,255,0.06);border:1px solid rgba(200,169,110,0.25);color:#EDE7DF;padding:14px 16px;border-radius:6px;font-size:13px;cursor:pointer;transition:all .2s;text-align:left;font-family:'Inter',sans-serif;}
+.qopt:hover{background:rgba(200,169,110,0.12);border-color:#C8A96E;}
+.quiz-progress{display:flex;gap:5px;margin-bottom:24px;}
+.qbar{flex:1;height:2px;background:rgba(255,255,255,0.12);border-radius:1px;transition:background .3s;}
+.qbar.done{background:#C8A96E;}
+.quiz-result{text-align:center;padding:12px 0;}
+.quiz-price{font-family:'Cormorant Garamond',serif;font-size:40px;color:#E8D5A8;margin:10px 0 4px;}
+.quiz-price-note{font-size:11px;color:rgba(247,243,238,0.5);margin-bottom:22px;}
+.quiz-restart{background:none;border:none;color:rgba(247,243,238,0.5);font-size:11px;letter-spacing:1px;cursor:pointer;margin-top:14px;text-decoration:underline;font-family:'Inter',sans-serif;}
+
+/* REVIEWS */
+.reviews{padding:52px 24px;background:var(--wh);}
+.review-track{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin-top:24px;scroll-snap-type:x mandatory;}
+.review-track::-webkit-scrollbar{display:none;}
+.review{flex:0 0 82%;max-width:340px;background:var(--cr);border:1px solid var(--ln);border-radius:12px;padding:20px;scroll-snap-align:start;}
+.review-stars{color:#C8A96E;font-size:13px;letter-spacing:2px;margin-bottom:10px;}
+.review-text{font-size:13px;color:var(--tm);line-height:1.75;margin-bottom:14px;font-style:italic;}
+.review-author{display:flex;align-items:center;gap:10px;}
+.review-ava{width:36px;height:36px;border-radius:50%;background:var(--brd);color:var(--wh);display:flex;align-items:center;justify-content:center;font-size:14px;font-family:'Cormorant Garamond',serif;}
+.review-name{font-size:12px;font-weight:500;color:var(--brd);}
+.review-what{font-size:10px;color:var(--ts);}
+
+/* nicer nav on scroll */
+.nav.scrolled{box-shadow:0 4px 24px rgba(92,74,58,0.08);}
+
 </style>
 </head>
 <body>
@@ -293,7 +342,7 @@ body{font-family:'Inter',sans-serif;background:var(--wh);color:var(--tx);overflo
 </div>
 
 <!-- CATALOG -->
-<section class="section" id="catalog">
+<section class="section reveal" id="catalog">
   <p class="sec-eye">Коллекции</p>
   <h2 class="sec-title">Каталог</h2>
   <div class="sec-line"></div>
@@ -305,11 +354,17 @@ body{font-family:'Inter',sans-serif;background:var(--wh);color:var(--tx);overflo
     <button class="cat" onclick="filterCat(this,'storage')">Шкафы</button>
     <button class="cat" onclick="filterCat(this,'table')">Столы</button>
   </div>
+  <div class="budget-row">
+    <button class="bcat active" onclick="filterBudget(this,'all')">Любой бюджет</button>
+    <button class="bcat" onclick="filterBudget(this,'low')">до 100 000 ₽</button>
+    <button class="bcat" onclick="filterBudget(this,'mid')">100–250 тыс ₽</button>
+    <button class="bcat" onclick="filterBudget(this,'high')">от 250 000 ₽</button>
+  </div>
   <div class="pgrid" id="productGrid"></div>
 </section>
 
 <!-- PORTFOLIO -->
-<section class="portfolio">
+<section class="portfolio reveal">
   <p class="sec-eye">Портфолио</p>
   <h2 class="sec-title">Наши работы</h2>
   <div class="sec-line"></div>
@@ -320,8 +375,93 @@ body{font-family:'Inter',sans-serif;background:var(--wh);color:var(--tx);overflo
   </div>
 </section>
 
+<!-- QUIZ -->
+<section class="quiz reveal" id="quiz">
+  <p class="quiz-eye">Расчёт за 30 секунд</p>
+  <h2 class="quiz-title">Узнайте стоимость<br><em>вашей мебели</em></h2>
+  <p class="quiz-sub">3 вопроса — и примерная цена. Точную назовём после бесплатного замера.</p>
+
+  <div class="quiz-progress">
+    <div class="qbar done" id="qb1"></div>
+    <div class="qbar" id="qb2"></div>
+    <div class="qbar" id="qb3"></div>
+  </div>
+
+  <div class="quiz-step active" id="qs1">
+    <p class="quiz-q">Что хотите заказать?</p>
+    <div class="quiz-opts">
+      <button class="qopt" onclick="quizPick(1,'kitchen','Кухня')">Кухонный гарнитур</button>
+      <button class="qopt" onclick="quizPick(1,'wardrobe','Шкаф')">Шкаф / гардеробная</button>
+      <button class="qopt" onclick="quizPick(1,'sofa','Мягкая мебель')">Диван / мягкая мебель</button>
+      <button class="qopt" onclick="quizPick(1,'other','Другое')">Другое</button>
+    </div>
+  </div>
+
+  <div class="quiz-step" id="qs2">
+    <p class="quiz-q">Какой размер примерно?</p>
+    <div class="quiz-opts">
+      <button class="qopt" onclick="quizPick(2,'small','Небольшой')">Небольшой (до 2 метров)</button>
+      <button class="qopt" onclick="quizPick(2,'mid','Средний')">Средний (2–4 метра)</button>
+      <button class="qopt" onclick="quizPick(2,'big','Большой')">Большой (от 4 метров / угловой)</button>
+    </div>
+  </div>
+
+  <div class="quiz-step" id="qs3">
+    <p class="quiz-q">Какие материалы?</p>
+    <div class="quiz-opts">
+      <button class="qopt" onclick="quizPick(3,'econom','Стандарт')">Стандарт (ЛДСП)</button>
+      <button class="qopt" onclick="quizPick(3,'mid','Комфорт')">Комфорт (МДФ, плёнка/эмаль)</button>
+      <button class="qopt" onclick="quizPick(3,'premium','Премиум')">Премиум (массив, шпон, кварц)</button>
+    </div>
+  </div>
+
+  <div class="quiz-step" id="qsResult">
+    <div class="quiz-result">
+      <p style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(247,243,238,0.5);">Примерная стоимость</p>
+      <div class="quiz-price" id="quizPrice">—</div>
+      <p class="quiz-price-note" id="quizNote">Точная цена — после бесплатного замера</p>
+      <button class="btn-p" style="background:#C8A96E;color:#3E3128;" onclick="openOrder('quiz')">Получить точный расчёт</button>
+      <br>
+      <button class="quiz-restart" onclick="quizRestart()">Пройти заново</button>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section class="reviews reveal" id="reviews">
+  <p class="sec-eye">Отзывы</p>
+  <h2 class="sec-title">Что говорят клиенты</h2>
+  <div class="sec-line"></div>
+  <div class="review-track">
+    <div class="review">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">Заказывали кухню — сделали за 3 недели, привезли, собрали за день. Всё ровно, дверцы не провисают, доводчики мягкие. Спасибо!</p>
+      <div class="review-author">
+        <div class="review-ava">П</div>
+        <div><div class="review-name">Патимат</div><div class="review-what">Кухонный гарнитур</div></div>
+      </div>
+    </div>
+    <div class="review">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">Шкаф-купе в спальню под нестандартную нишу. Замерщик приехал в тот же день. Получилось ровно то что хотели, ни миллиметра зазора.</p>
+      <div class="review-author">
+        <div class="review-ava">М</div>
+        <div><div class="review-name">Магомед</div><div class="review-what">Шкаф-купе</div></div>
+      </div>
+    </div>
+    <div class="review">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">Сравнивали с двумя другими фирмами — тут цена ниже при том же материале, потому что своё производство. Кухней пользуемся полгода, всё отлично.</p>
+      <div class="review-author">
+        <div class="review-ava">А</div>
+        <div><div class="review-name">Амина</div><div class="review-what">Кухня + шкаф</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ABOUT -->
-<section class="about" id="about">
+<section class="about reveal" id="about">
   <p class="sec-eye">О компании</p>
   <h2 class="about-title">Делаем руками,<br>отвечаем именем</h2>
   <p class="about-txt">Мебель Алиев — не перекупщик и не склад. Всё делается у нас в Махачкале. Кухни, шкафы, диваны, кровати — знаем каждый шов и каждый болт. Поэтому даём гарантию и не боимся её.</p>
@@ -466,7 +606,7 @@ const fmt=p=>p.toLocaleString('ru-RU')+' ₽';
 
 function renderProducts(filter){
   const grid=document.getElementById('productGrid');
-  const list=filter==='all'?products:products.filter(p=>p.cat===filter);
+  let list=filter==='all'?products:products.filter(p=>p.cat===filter);list=list.filter(budgetMatch);
   grid.innerHTML=list.map(p=>{
     const inCart=!!cart.find(c=>c.id===p.id);
     const imgSrc=p.img&&imgMap[p.img]?`<img src="${imgMap[p.img]}" alt="${p.name}" loading="lazy">`:'<div class="pimg-placeholder">🛋</div>';
@@ -520,7 +660,8 @@ function toggleFloat(){
 
 function openOrder(src){
   const sub=document.getElementById('modalSub');
-  if(src==='cart'&&cart.length)sub.textContent=`${cart.length} позиции · ${fmt(cart.reduce((a,c)=>a+c.price,0))}`;
+  if(src==='quiz'){sub.textContent='Расчёт: '+(quizAnswers['1_label']||'')+' · '+document.getElementById('quizPrice').textContent;}
+  else if(src==='cart'&&cart.length)sub.textContent=`${cart.length} позиции · ${fmt(cart.reduce((a,c)=>a+c.price,0))}`;
   else sub.textContent='Перезвоним в течение 15 минут';
   document.getElementById('modalOverlay').classList.remove('hidden');
   document.getElementById('cartPanel').classList.remove('open');
@@ -535,6 +676,63 @@ function submitOrder(){
 }
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeOrder();});
 function showToast(msg){const t=document.getElementById('toastEl');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+// ─── QUIZ ───
+const quizAnswers={};
+const quizPrices={
+  kitchen:{small:{econom:[80,120],mid:[130,190],premium:[220,350]},mid:{econom:[120,180],mid:[190,280],premium:[320,480]},big:{econom:[170,250],mid:[260,380],premium:[450,700]}},
+  wardrobe:{small:{econom:[35,55],mid:[55,85],premium:[95,150]},mid:{econom:[55,85],mid:[85,130],premium:[140,220]},big:{econom:[80,120],mid:[120,180],premium:[200,320]}},
+  sofa:{small:{econom:[40,60],mid:[60,95],premium:[100,160]},mid:{econom:[60,90],mid:[90,140],premium:[150,240]},big:{econom:[85,130],mid:[130,200],premium:[210,340]}},
+  other:{small:{econom:[25,50],mid:[45,80],premium:[80,140]},mid:{econom:[45,80],mid:[75,130],premium:[130,220]},big:{econom:[70,120],mid:[110,190],premium:[190,320]}}
+};
+function quizPick(step,val,label){
+  quizAnswers[step]=val;
+  quizAnswers[step+'_label']=label;
+  document.getElementById('qs'+step).classList.remove('active');
+  if(step<3){
+    document.getElementById('qs'+(step+1)).classList.add('active');
+    document.getElementById('qb'+(step+1)).classList.add('done');
+  }else{
+    const range=quizPrices[quizAnswers[1]][quizAnswers[2]][quizAnswers[3]];
+    document.getElementById('quizPrice').textContent=range[0]+' – '+range[1]+' тыс ₽';
+    document.getElementById('quizNote').textContent=quizAnswers['1_label']+' · '+quizAnswers['2_label'].toLowerCase()+' · '+quizAnswers['3_label'].toLowerCase()+' — точная цена после замера';
+    document.getElementById('qsResult').classList.add('active');
+  }
+}
+function quizRestart(){
+  document.querySelectorAll('.quiz-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('qs1').classList.add('active');
+  document.getElementById('qb2').classList.remove('done');
+  document.getElementById('qb3').classList.remove('done');
+}
+
+// ─── BUDGET FILTER ───
+let budgetFilter='all';
+function filterBudget(el,b){
+  budgetFilter=b;
+  document.querySelectorAll('.bcat').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderProducts(currentFilter);
+}
+function budgetMatch(p){
+  if(budgetFilter==='all')return true;
+  if(budgetFilter==='low')return p.price<100000;
+  if(budgetFilter==='mid')return p.price>=100000&&p.price<250000;
+  if(budgetFilter==='high')return p.price>=250000;
+  return true;
+}
+
+// ─── SCROLL REVEAL ───
+const revealObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');revealObs.unobserve(e.target);}});
+},{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el=>revealObs.observe(el));
+
+// nav shadow on scroll
+window.addEventListener('scroll',()=>{
+  document.querySelector('.nav').classList.toggle('scrolled',window.scrollY>10);
+},{passive:true});
+
 renderProducts('all');
 </script>
 </body>
