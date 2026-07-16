@@ -839,9 +839,13 @@ renderProducts('all');
 
 <script>
 /* ══ КОНФИГ ══
-   AM_WORKER — Cloudflare Worker (прокси к Claude). Пусто = локальный демо-режим.
+   AM_WORKER — Cloudflare Worker (надёжный вариант). Если задан — используется он.
+   AM_KEY/AM_BASE — прямое подключение через агрегатор (ключ виден в коде!).
    AM_TG_*  — телеграм для заявок (замеры и заказы). Пусто = имитация в чате. */
 const AM_WORKER="";
+const AM_KEY="sk-hoyCgdrCNDtkIpLQyzxKCt3DchsBtSx74mgIRQvLq1WOlpuO";
+const AM_BASE="https://blank.aigcbest.top";
+const AM_MODEL="claude-sonnet-4-5-20250929";
 const AM_TG_TOKEN="";
 const AM_TG_CHAT="";
 
@@ -906,7 +910,7 @@ function amCheckout(){
 /* ══ РОУТЕР ══ */
 async function amHandle(text){
   amMsg("user",text);amInp.value="";amTyping(true);
-  if(AM_WORKER){
+  if(AM_WORKER||AM_KEY){
     try{await amAI(text);amTyping(false);return}
     catch(e){console.warn("AI недоступен, локальный режим:",e)}
   }
@@ -925,11 +929,33 @@ const amSys_=()=>`Ты — Мурад, консультант мебельног
 "show" — карточки товаров ids (макс 3). "add" — добавить ids в корзину. "order"/"measure" — данные собраны и подтверждены. Не выдумывай товары и цены вне данных.`;
 async function amAI(text){
   amHist.push({role:"user",content:text});
-  const r=await fetch(AM_WORKER,{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:700,system:amSys_(),messages:amHist.slice(-16)})});
-  if(!r.ok)throw new Error("worker "+r.status);
-  const data=await r.json();
-  const raw=(data.content||[]).map(c=>c.text||"").join("");
+  let raw="";
+  if(AM_WORKER){
+    const r=await fetch(AM_WORKER,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:AM_MODEL,max_tokens:700,system:amSys_(),messages:amHist.slice(-16)})});
+    if(!r.ok)throw new Error("worker "+r.status);
+    const data=await r.json();
+    raw=(data.content||[]).map(c=>c.text||"").join("");
+  }else{
+    /* прямое подключение к агрегатору: сначала формат Anthropic, потом OpenAI */
+    let done=false;
+    try{
+      const r=await fetch(AM_BASE+"/v1/messages",{method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":AM_KEY,"anthropic-version":"2023-06-01"},
+        body:JSON.stringify({model:AM_MODEL,max_tokens:700,system:amSys_(),messages:amHist.slice(-16)})});
+      if(r.ok){const d=await r.json();raw=(d.content||[]).map(c=>c.text||"").join("");done=!!raw}
+    }catch(e){console.warn("anthropic-формат не прошёл:",e)}
+    if(!done){
+      const r=await fetch(AM_BASE+"/v1/chat/completions",{method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+AM_KEY},
+        body:JSON.stringify({model:AM_MODEL,max_tokens:700,
+          messages:[{role:"system",content:amSys_()},...amHist.slice(-16)]})});
+      if(!r.ok)throw new Error("proxy "+r.status);
+      const d=await r.json();
+      raw=d.choices?.[0]?.message?.content||"";
+      if(!raw)throw new Error("пустой ответ прокси");
+    }
+  }
   amHist.push({role:"assistant",content:raw});
   let j;try{j=JSON.parse(raw.replace(/```json|```/g,"").trim())}catch(e){amTyping(false);amBot(raw);return}
   amTyping(false);
