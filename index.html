@@ -845,7 +845,7 @@ renderProducts('all');
 const AM_WORKER="";
 const AM_KEY="sk-hoyCgdrCNDtkIpLQyzxKCt3DchsBtSx74mgIRQvLq1WOlpuO";
 const AM_BASE="https://blank.aigcbest.top";
-const AM_MODEL="claude-sonnet-4-5-20250929";
+const AM_MODEL="claude-sonnet-4-6";
 const AM_TG_TOKEN="";
 const AM_TG_CHAT="";
 
@@ -917,53 +917,67 @@ async function amHandle(text){
   setTimeout(()=>{amTyping(false);amBrain(text)},420+Math.random()*450);
 }
 
-/* ══ AI-РЕЖИМ (Claude через Cloudflare Worker) ══ */
+/* ══ AI-РЕЖИМ (схема как у RIBAY: живой текст + командные теги) ══ */
 const amHist=[];
-const amSys_=()=>`Ты — Мурад, консультант мебельного салона «Мебель Алиев» (Махачкала, собственное производство, гарантия 3 года, бесплатный замер). Говори по-русски, коротко, тепло, по-человечески. Уместно мусульманское приветствие.
-Готовая мебель (JSON): ${JSON.stringify(products.map(p=>({id:p.id,name:p.name,mat:p.mat,price:p.price,cat:p.cat})))}.
-Мебель на заказ — вилки цен в ТЫСЯЧАХ рублей: ${JSON.stringify(quizPrices)} (тип: kitchen/wardrobe/sofa/other; размер: small/mid/big; класс: econom/mid/premium). Точная цена — после бесплатного замера.
-Корзина: ${JSON.stringify(cart.map(c=>({id:c.id,name:c.name})))}.
-Сценарии: 1) готовая мебель (sofa/bed/storage) — подбор, корзина, оформление заказа с оплатой: собери имя, телефон, адрес (по одному вопросу), подтверди состав, затем action "order". 2) кухни и мебель на заказ — посчитай вилку по размеру и классу, предложи бесплатный замер: собери имя, телефон, адрес, затем action "measure".
-ОТВЕЧАЙ ТОЛЬКО валидным JSON без markdown:
-{"say":"...","action":null|"show"|"add"|"order"|"measure","ids":[...],"data":{"name":"","phone":"","address":"","item":""}}
-"show" — карточки товаров ids (макс 3). "add" — добавить ids в корзину. "order"/"measure" — данные собраны и подтверждены. Не выдумывай товары и цены вне данных.`;
+const amCatalogText=()=>products.map(p=>`id ${p.id}: ${p.name} — ${p.mat} — ${fmt(p.price)}${p.cat==="kitchen"?" (пример работы, делается под размеры клиента)":""}`).join("; ");
+const amSys_=()=>"Ты — Мурад, консультант мебельного салона «Мебель Алиев» в Махачкале. Собственное производство, гарантия 3 года, бесплатный замер, доставка и сборка своими мастерами. "+
+"ГОТОВАЯ МЕБЕЛЬ: "+amCatalogText()+". "+
+"МЕБЕЛЬ НА ЗАКАЗ — ориентировочные вилки в тысячах рублей (тип → размер small/mid/big → класс econom/mid/premium): "+JSON.stringify(quizPrices)+". Точная цена — только после бесплатного замера. "+
+"Корзина клиента сейчас: "+(cart.length?cart.map(c=>c.name).join(", ")+" (итого "+fmt(amTotal())+")":"пустая")+". "+
+"ТОН: тёплый, гостеприимный, живой — как хороший продавец, который знает товар наизусть и искренне хочет помочь. Простой человеческий язык, без канцелярита и без панибратства. Эмодзи не используй. Отвечай коротко, 1-3 предложения, один вопрос за раз. Зеркаль гостя: на ты отвечай на ты, на вы — на вы. На салам/ассаляму алейкум отвечай: Ваалейкум ассалям. Цены называй смело. Чего нет — честно говори и предлагай сделать на заказ. На вопросы не про мебель вежливо возвращай к теме. "+
+"ПРОЦЕСС: кухни и мебель на заказ не продаются по фиксированной цене — узнай размер и класс, назови вилку и веди на бесплатный замер. Готовая мебель (диваны, кровати, шкафы): подбор → корзина → для оформления собери имя, телефон и адрес по одному вопросу → покажи состав и сумму, спроси подтверждение → оплата. "+
+"ИНСТРУМЕНТЫ — когда нужно, добавляй тег В САМЫЙ КОНЕЦ ответа (клиент тегов не видит): "+
+"[SHOW:id,id] — показать карточки конкретных готовых моделей, которые советуешь (до 3). "+
+"[ADD:id] — клиент явно согласился взять товар — добавить в корзину. "+
+"[ORDER:Имя|Телефон|Адрес] — имя, телефон и адрес собраны и клиент подтвердил заказ готовой мебели — после тега ему придёт окно оплаты. "+
+"[MEASURE:Имя|Телефон|Адрес|Что интересует] — данные собраны для записи на замер (кухни и мебель на заказ). "+
+"Не выдумывай товары, id и цены вне данных. Теги используй только когда действие реально нужно.";
 async function amAI(text){
   amHist.push({role:"user",content:text});
+  const ctl=new AbortController();
+  const tmo=setTimeout(()=>ctl.abort(),25000);
+  let r;
+  try{
+    r=await fetch((AM_WORKER||AM_BASE+"/v1/messages"),{method:"POST",signal:ctl.signal,
+      headers:AM_WORKER?{"Content-Type":"application/json"}:{"Content-Type":"application/json","x-api-key":AM_KEY,"anthropic-version":"2023-06-01"},
+      body:JSON.stringify({model:AM_MODEL,max_tokens:500,system:amSys_(),messages:amHist.slice(-16)})});
+  }finally{clearTimeout(tmo)}
+  if(!r.ok)throw new Error("api "+r.status);
+  const data=await r.json();
   let raw="";
-  if(AM_WORKER){
-    const r=await fetch(AM_WORKER,{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:AM_MODEL,max_tokens:700,system:amSys_(),messages:amHist.slice(-16)})});
-    if(!r.ok)throw new Error("worker "+r.status);
-    const data=await r.json();
-    raw=(data.content||[]).map(c=>c.text||"").join("");
-  }else{
-    /* прямое подключение к агрегатору: сначала формат Anthropic, потом OpenAI */
-    let done=false;
-    try{
-      const r=await fetch(AM_BASE+"/v1/messages",{method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":AM_KEY,"anthropic-version":"2023-06-01"},
-        body:JSON.stringify({model:AM_MODEL,max_tokens:700,system:amSys_(),messages:amHist.slice(-16)})});
-      if(r.ok){const d=await r.json();raw=(d.content||[]).map(c=>c.text||"").join("");done=!!raw}
-    }catch(e){console.warn("anthropic-формат не прошёл:",e)}
-    if(!done){
-      const r=await fetch(AM_BASE+"/v1/chat/completions",{method:"POST",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+AM_KEY},
-        body:JSON.stringify({model:AM_MODEL,max_tokens:700,
-          messages:[{role:"system",content:amSys_()},...amHist.slice(-16)]})});
-      if(!r.ok)throw new Error("proxy "+r.status);
-      const d=await r.json();
-      raw=d.choices?.[0]?.message?.content||"";
-      if(!raw)throw new Error("пустой ответ прокси");
+  if(data.content)for(const c of data.content)if(c.type==="text")raw+=c.text;
+  raw=raw.trim();
+  if(!raw)throw new Error("пустой ответ");
+  amHist.push({role:"assistant",content:raw});
+  /* вырезаем и исполняем теги */
+  const tags=[...raw.matchAll(/\[(SHOW|ADD|ORDER|MEASURE):([^\]]*)\]/gi)];
+  const say=raw.replace(/\[(SHOW|ADD|ORDER|MEASURE):[^\]]*\]/gi,"").trim();
+  amTyping(false);
+  if(say)amBot(say);
+  for(const tg of tags){
+    const cmd=tg[1].toUpperCase(),arg=tg[2].trim();
+    if(cmd==="SHOW"){
+      const ids=arg.split(",").map(s=>parseInt(s)).filter(id=>products.find(p=>p.id===id));
+      if(ids.length)amShow(ids);
+    }
+    if(cmd==="ADD"){
+      arg.split(",").map(s=>parseInt(s)).forEach(id=>{
+        const p=products.find(x=>x.id===id);
+        if(p&&p.cat!=="kitchen"&&!cart.find(c=>c.id===id)){
+          cart.push({...p});
+          const b=document.getElementById("cartBadge");b.textContent=cart.length;
+          renderCart();renderProducts(currentFilter);
+        }});
+    }
+    if(cmd==="ORDER"){
+      const[n,ph,ad]=arg.split("|").map(s=>s.trim());
+      if(n&&ph&&cart.length){amOrd.name=n;amOrd.phone=ph;amOrd.addr=ad||"";amPayStart()}
+    }
+    if(cmd==="MEASURE"){
+      const[n,ph,ad,it]=arg.split("|").map(s=>s.trim());
+      if(n&&ph){amOrd.name=n;amOrd.phone=ph;amOrd.addr=ad||"";amOrd.item=it||amOrd.item;amMeasureDone()}
     }
   }
-  amHist.push({role:"assistant",content:raw});
-  let j;try{j=JSON.parse(raw.replace(/```json|```/g,"").trim())}catch(e){amTyping(false);amBot(raw);return}
-  amTyping(false);
-  if(j.say)amBot(j.say);
-  if(j.action==="show"&&j.ids?.length)amShow(j.ids);
-  if(j.action==="add"&&j.ids?.length)j.ids.forEach(id=>{const p=products.find(x=>x.id===id);if(p&&!cart.find(c=>c.id===id)){cart.push({...p});document.getElementById("cartBadge").textContent=cart.length;renderCart();renderProducts(currentFilter)}});
-  if(j.action==="order"&&j.data){amOrd.name=j.data.name;amOrd.phone=j.data.phone;amOrd.addr=j.data.address;amPayStart()}
-  if(j.action==="measure"&&j.data){amOrd.name=j.data.name;amOrd.phone=j.data.phone;amOrd.addr=j.data.address;amOrd.item=j.data.item||amOrd.item;amMeasureDone()}
 }
 
 /* ══ ЛОКАЛЬНЫЙ МОЗГ ══ */
