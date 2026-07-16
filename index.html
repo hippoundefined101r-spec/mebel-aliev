@@ -545,7 +545,7 @@ body{font-family:'Inter',sans-serif;background:var(--wh);color:var(--tx);overflo
     <span class="ctlbl">Итого</span>
     <span class="ctprice" id="cartTotalPrice"></span>
   </div>
-  <button class="btn-p" id="checkoutBtn" style="width:100%;display:none;" onclick="openOrder('cart')">Оформить заказ</button>
+  <button class="btn-p" id="checkoutBtn" style="width:100%;display:none;" onclick="amCheckout()">Оформить с Мурадом</button>
 </div>
 
 <!-- MODAL -->
@@ -579,7 +579,7 @@ body{font-family:'Inter',sans-serif;background:var(--wh);color:var(--tx);overflo
       </a>
     </div>
   </div>
-  <button class="fbtn fbtn-main" id="floatMainBtn" onclick="toggleFloat()" aria-label="Написать нам">
+  <button class="fbtn fbtn-main" id="floatMainBtn" onclick="amOpen()" aria-label="Написать нам">
     <svg id="floatMainIcon" width="22" height="22" viewBox="0 0 24 24" fill="none">
       <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
@@ -751,5 +751,344 @@ window.addEventListener('scroll',()=>{
 
 renderProducts('all');
 </script>
+<!-- ═══════════ ИИ-КОНСУЛЬТАНТ «МУРАД» · ISA Web ═══════════ -->
+<style>
+.am-chat{position:fixed;inset:0;z-index:9999;display:none;flex-direction:column;background:var(--wh)}
+.am-chat.open{display:flex}
+@media(min-width:760px){.am-chat{inset:auto 24px 24px auto;width:400px;height:min(660px,calc(100vh - 48px));border-radius:18px;border:1px solid var(--ln);box-shadow:0 24px 60px rgba(44,36,32,.28);overflow:hidden}}
+.am-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--brd);color:var(--cr)}
+.am-ava{width:42px;height:42px;border-radius:50%;background:var(--brl);color:#fff;display:grid;place-items:center;font-family:'Cormorant Garamond',serif;font-size:1.3rem;flex:0 0 auto}
+.am-who{flex:1;min-width:0}
+.am-who b{display:block;font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.15rem;letter-spacing:.05em}
+.am-st{font-size:.72rem;opacity:.8;display:flex;align-items:center;gap:6px}
+.am-st i{width:6px;height:6px;border-radius:50%;background:#8FCF9F}
+.am-x{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;color:var(--cr);background:none;border:none;cursor:pointer}
+.am-body{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+.am-m{max-width:84%;padding:11px 14px;border-radius:15px;font-size:.92rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;animation:amIn .18s ease}
+@keyframes amIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.am-m.bot{align-self:flex-start;background:#fff;border:1px solid var(--ln);border-bottom-left-radius:5px;color:var(--tx)}
+.am-m.user{align-self:flex-end;background:var(--br);color:#fff;border-bottom-right-radius:5px}
+.am-m.sys{align-self:center;background:var(--cr2);border:1px dashed var(--brl);font-size:.78rem;color:var(--tm);max-width:92%;border-radius:12px}
+.am-tp{align-self:flex-start;background:#fff;border:1px solid var(--ln);border-radius:15px;border-bottom-left-radius:5px;padding:14px 16px;display:flex;gap:5px}
+.am-tp i{width:6px;height:6px;border-radius:50%;background:var(--ts);animation:amTp 1s infinite}
+.am-tp i:nth-child(2){animation-delay:.15s}.am-tp i:nth-child(3){animation-delay:.3s}
+@keyframes amTp{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+.am-prods{align-self:flex-start;display:flex;gap:10px;overflow-x:auto;max-width:100%;padding:2px 2px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.am-prods::-webkit-scrollbar{display:none}
+.am-cp{flex:0 0 170px;background:#fff;border:1px solid var(--ln);border-radius:13px;overflow:hidden}
+.am-cp .im{aspect-ratio:16/10;background:var(--cr2);display:grid;place-items:center;overflow:hidden}
+.am-cp .im img{width:100%;height:100%;object-fit:cover;display:block}
+.am-cp .im span{font-family:'Cormorant Garamond',serif;font-size:1.7rem;color:var(--brl)}
+.am-cp .bd{padding:10px 11px 12px}
+.am-cp .n{font-weight:500;font-size:.82rem;line-height:1.25;min-height:2.1em;color:var(--tx)}
+.am-cp .p{font-weight:600;font-size:.9rem;margin:5px 0 8px;color:var(--brd)}
+.am-cp button{width:100%;padding:9px 0;border-radius:9px;background:var(--br);color:#fff;font-weight:500;font-size:.78rem;border:none;cursor:pointer;font-family:'Inter',sans-serif}
+.am-cp button.ok{background:#5E8C6A}
+.am-q{display:flex;gap:8px;overflow-x:auto;padding:8px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.am-q::-webkit-scrollbar{display:none}
+.am-q button{flex:0 0 auto;padding:8px 14px;border-radius:999px;border:1px solid var(--ln);background:#fff;font-size:.8rem;font-weight:500;color:var(--tm);cursor:pointer;font-family:'Inter',sans-serif}
+.am-in{display:flex;gap:8px;padding:10px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--ln);background:var(--wh)}
+.am-in input{flex:1;padding:13px 16px;border-radius:13px;border:1px solid var(--ln);background:#fff;font-family:'Inter',sans-serif;font-size:16px;outline:none;color:var(--tx)}
+.am-in input:focus{border-color:var(--br)}
+.am-send{width:48px;height:48px;border-radius:13px;background:var(--brd);color:#fff;display:grid;place-items:center;flex:0 0 auto;border:none;cursor:pointer}
+.am-rec{align-self:flex-start;max-width:88%;background:#fff;border:1px solid var(--ln);border-radius:13px;padding:14px 16px;font-size:.84rem;animation:amIn .18s ease}
+.am-rec .t{font-family:'Cormorant Garamond',serif;font-size:1rem;letter-spacing:.06em;color:var(--brd);margin-bottom:8px}
+.am-rec .r{display:flex;justify-content:space-between;gap:14px;padding:3px 0;color:var(--tm)}
+.am-rec .r.tt{border-top:1px dashed var(--ln);margin-top:6px;padding-top:8px;font-weight:600;color:var(--tx)}
+.am-rec .nn{margin-top:8px;font-size:.7rem;color:var(--ts)}
+.am-pw{position:fixed;inset:0;z-index:10001;display:none;place-items:center;background:rgba(44,36,32,.55);padding:18px}
+.am-pw.on{display:grid}
+.am-pay{width:min(370px,100%);background:#fff;border-radius:18px;padding:24px 22px;animation:amIn .2s ease}
+.am-pay .h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.am-pay .h b{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.25rem;color:var(--tx)}
+.am-tag{font-size:.64rem;font-weight:600;letter-spacing:.08em;background:#FBF3DC;color:#8a6a1d;border:1px solid #ecd9a5;padding:4px 9px;border-radius:999px;text-transform:uppercase}
+.am-pay .o{font-size:.8rem;color:var(--tm);margin-bottom:4px}
+.am-pay .s{font-size:1.9rem;font-weight:600;color:var(--tx);margin-bottom:18px}
+.am-go{width:100%;padding:16px 0;border-radius:13px;background:var(--brd);color:#fff;font-weight:500;font-size:.92rem;display:flex;align-items:center;justify-content:center;gap:10px;border:none;cursor:pointer;font-family:'Inter',sans-serif}
+.am-go:disabled{opacity:.6}
+.am-cx{width:100%;margin-top:10px;padding:12px 0;color:var(--ts);font-weight:500;font-size:.82rem;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif}
+.am-sp{width:17px;height:17px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:amSp .7s linear infinite}
+@keyframes amSp{to{transform:rotate(360deg)}}
+.am-done{text-align:center;padding:10px 0}
+.am-done .ok{width:60px;height:60px;border-radius:50%;background:#EAF3EC;display:grid;place-items:center;margin:0 auto 14px;color:#5E8C6A}
+.am-done b{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.3rem;color:var(--tx)}
+.am-done p{color:var(--tm);font-size:.82rem;margin-top:6px}
+.am-nudge{position:fixed;right:88px;bottom:34px;z-index:9998;background:#fff;border:1px solid var(--ln);border-radius:14px 14px 4px 14px;box-shadow:0 12px 30px var(--sh);padding:12px 14px;max-width:230px;font-size:.8rem;color:var(--tx);cursor:pointer;display:none;animation:amIn .3s ease}
+.am-nudge.on{display:block}
+.am-nudge b{color:var(--brd)}
+@media(prefers-reduced-motion:reduce){.am-chat *,.am-nudge{animation:none!important}}
+</style>
+
+<div class="am-nudge" id="amNudge" onclick="amOpen()">Ассаламу алейкум 👋 Я <b>Мурад</b>, консультант. Подберу мебель и посчитаю кухню за минуту.</div>
+
+<div class="am-chat" id="amChat" role="dialog" aria-label="Чат с консультантом Мурадом">
+  <div class="am-head">
+    <div class="am-ava">М</div>
+    <div class="am-who"><b>Мурад · Мебель Алиев</b><span class="am-st"><i></i>онлайн, отвечает сразу</span></div>
+    <button class="am-x" onclick="amClose()" aria-label="Закрыть чат"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="am-body" id="amBody"></div>
+  <div class="am-q" id="amQ"></div>
+  <div class="am-in">
+    <input id="amInput" type="text" placeholder="Сообщение…" autocomplete="off" enterkeyhint="send">
+    <button class="am-send" id="amSend" aria-label="Отправить"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg></button>
+  </div>
+</div>
+
+<div class="am-pw" id="amPw"><div class="am-pay" id="amPay"></div></div>
+
+<script>
+/* ══ КОНФИГ ══
+   AM_WORKER — Cloudflare Worker (прокси к Claude). Пусто = локальный демо-режим.
+   AM_TG_*  — телеграм для заявок (замеры и заказы). Пусто = имитация в чате. */
+const AM_WORKER="";
+const AM_TG_TOKEN="";
+const AM_TG_CHAT="";
+
+const amBody=document.getElementById("amBody"),amInp=document.getElementById("amInput");
+let amOpened=false,amShown=[],amState="browse",amCalcType=null,amCalc={};
+const amOrd={name:"",phone:"",addr:"",item:"",num:100+Math.floor(Math.random()*900)};
+const amTotal=()=>cart.reduce((a,c)=>a+c.price,0);
+const amRange=(t,s,c)=>{const r=quizPrices[t][s][c];return r[0]+"–"+r[1]+" тыс ₽"};
+
+function amOpen(){
+  document.getElementById("amChat").classList.add("open");
+  document.getElementById("amNudge").classList.remove("on");
+  if(!amOpened){amOpened=true;amBot("Ассаламу алейкум! Я Мурад, консультант «Мебель Алиев» 🌿\nПодберу готовую мебель, посчитаю кухню или шкаф под ваши размеры и оформлю заказ прямо здесь.\n\nЧто вас интересует?")}
+  amChips(["Кухня — рассчитать стоимость","Диваны","Кровати","Шкафы","Записаться на замер"]);
+}
+function amClose(){document.getElementById("amChat").classList.remove("open")}
+setTimeout(()=>{if(!amOpened)document.getElementById("amNudge").classList.add("on")},4000);
+setTimeout(()=>{document.getElementById("amNudge").classList.remove("on")},18000);
+
+function amScroll(){amBody.scrollTop=amBody.scrollHeight}
+function amMsg(cls,t){const d=document.createElement("div");d.className="am-m "+cls;d.textContent=t;amBody.appendChild(d);amScroll()}
+function amBot(t){amMsg("bot",t)}
+function amSys(t){amMsg("sys",t)}
+let amTpEl=null;
+function amTyping(on){
+  if(on&&!amTpEl){amTpEl=document.createElement("div");amTpEl.className="am-tp";amTpEl.innerHTML="<i></i><i></i><i></i>";amBody.appendChild(amTpEl);amScroll()}
+  if(!on&&amTpEl){amTpEl.remove();amTpEl=null}
+}
+function amChips(arr){document.getElementById("amQ").innerHTML=arr.map(t=>`<button onclick="amQuick('${t.replace(/'/g,"\\'")}')">${t}</button>`).join("")}
+function amQuick(t){amHandle(t)}
+document.getElementById("amSend").onclick=()=>{if(amInp.value.trim())amHandle(amInp.value.trim())};
+amInp.addEventListener("keydown",e=>{if(e.key==="Enter"&&amInp.value.trim())amHandle(amInp.value.trim())});
+
+function amShow(ids){
+  amShown=ids.slice(0,4);
+  const w=document.createElement("div");w.className="am-prods";
+  w.innerHTML=amShown.map(id=>{const p=products.find(x=>x.id===id);
+    const im=p.img&&imgMap[p.img]?`<img src="${imgMap[p.img]}" alt="${p.name}">`:`<span>${p.name[0]}</span>`;
+    return `<div class="am-cp"><div class="im">${im}</div><div class="bd"><div class="n">${p.name}</div><div class="p">${fmt(p.price)}</div><button onclick="amAdd(${p.id},this)">${p.cat==='kitchen'?'Хочу такую':'В корзину'}</button></div></div>`}).join("");
+  amBody.appendChild(w);amScroll();
+}
+function amAdd(id,btn){
+  const p=products.find(x=>x.id===id);
+  if(p.cat==="kitchen"){
+    if(btn){btn.textContent="Выбрано ✓";btn.classList.add("ok")}
+    amOrd.item=p.name;amState="m_name";
+    setTimeout(()=>{amBot(`Отличный выбор — ${p.name}. Кухни мы делаем под размеры вашего помещения, поэтому оформляем через бесплатный замер: мастер приедет, всё измерит и назовёт точную цену.\n\nКак вас зовут?`);amChips([])},350);
+    return;
+  }
+  if(!cart.find(c=>c.id===id)){cart.push({...p});
+    const b=document.getElementById("cartBadge");b.textContent=cart.length;b.classList.add("bump");setTimeout(()=>b.classList.remove("bump"),300);
+    renderCart();renderProducts(currentFilter);
+  }
+  if(btn){btn.textContent="Добавлено ✓";btn.classList.add("ok")}
+  setTimeout(()=>{amBot(`${p.name} — в корзине. Итого: ${fmt(amTotal())}.\nДобавить что-то ещё или оформляем?`);amChips(["Оформить заказ","Показать ещё"])},350);
+}
+function amCheckout(){
+  document.getElementById("cartPanel").classList.remove("open");
+  amOpen();amHandle("Оформить заказ");
+}
+
+/* ══ РОУТЕР ══ */
+async function amHandle(text){
+  amMsg("user",text);amInp.value="";amTyping(true);
+  if(AM_WORKER){
+    try{await amAI(text);amTyping(false);return}
+    catch(e){console.warn("AI недоступен, локальный режим:",e)}
+  }
+  setTimeout(()=>{amTyping(false);amBrain(text)},420+Math.random()*450);
+}
+
+/* ══ AI-РЕЖИМ (Claude через Cloudflare Worker) ══ */
+const amHist=[];
+const amSys_=()=>`Ты — Мурад, консультант мебельного салона «Мебель Алиев» (Махачкала, собственное производство, гарантия 3 года, бесплатный замер). Говори по-русски, коротко, тепло, по-человечески. Уместно мусульманское приветствие.
+Готовая мебель (JSON): ${JSON.stringify(products.map(p=>({id:p.id,name:p.name,mat:p.mat,price:p.price,cat:p.cat})))}.
+Мебель на заказ — вилки цен в ТЫСЯЧАХ рублей: ${JSON.stringify(quizPrices)} (тип: kitchen/wardrobe/sofa/other; размер: small/mid/big; класс: econom/mid/premium). Точная цена — после бесплатного замера.
+Корзина: ${JSON.stringify(cart.map(c=>({id:c.id,name:c.name})))}.
+Сценарии: 1) готовая мебель (sofa/bed/storage) — подбор, корзина, оформление заказа с оплатой: собери имя, телефон, адрес (по одному вопросу), подтверди состав, затем action "order". 2) кухни и мебель на заказ — посчитай вилку по размеру и классу, предложи бесплатный замер: собери имя, телефон, адрес, затем action "measure".
+ОТВЕЧАЙ ТОЛЬКО валидным JSON без markdown:
+{"say":"...","action":null|"show"|"add"|"order"|"measure","ids":[...],"data":{"name":"","phone":"","address":"","item":""}}
+"show" — карточки товаров ids (макс 3). "add" — добавить ids в корзину. "order"/"measure" — данные собраны и подтверждены. Не выдумывай товары и цены вне данных.`;
+async function amAI(text){
+  amHist.push({role:"user",content:text});
+  const r=await fetch(AM_WORKER,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:700,system:amSys_(),messages:amHist.slice(-16)})});
+  if(!r.ok)throw new Error("worker "+r.status);
+  const data=await r.json();
+  const raw=(data.content||[]).map(c=>c.text||"").join("");
+  amHist.push({role:"assistant",content:raw});
+  let j;try{j=JSON.parse(raw.replace(/```json|```/g,"").trim())}catch(e){amTyping(false);amBot(raw);return}
+  amTyping(false);
+  if(j.say)amBot(j.say);
+  if(j.action==="show"&&j.ids?.length)amShow(j.ids);
+  if(j.action==="add"&&j.ids?.length)j.ids.forEach(id=>{const p=products.find(x=>x.id===id);if(p&&!cart.find(c=>c.id===id)){cart.push({...p});document.getElementById("cartBadge").textContent=cart.length;renderCart();renderProducts(currentFilter)}});
+  if(j.action==="order"&&j.data){amOrd.name=j.data.name;amOrd.phone=j.data.phone;amOrd.addr=j.data.address;amPayStart()}
+  if(j.action==="measure"&&j.data){amOrd.name=j.data.name;amOrd.phone=j.data.phone;amOrd.addr=j.data.address;amOrd.item=j.data.item||amOrd.item;amMeasureDone()}
+}
+
+/* ══ ЛОКАЛЬНЫЙ МОЗГ ══ */
+const AMW={kitchen:["кухн"],sofa:["диван","софа","мягк"],bed:["кроват","спальн"],storage:["шкаф","хран","гардероб","купе","комод"]};
+const AMTYPE={"кухн":"kitchen","шкаф":"wardrobe","купе":"wardrobe","гардероб":"wardrobe","диван":"sofa","мягк":"sofa"};
+function amBudget(t){
+  const m=t.match(/до\s*(\d[\d\s]*)\s*(тыс|т\b|к\b)?/i)||t.match(/(\d[\d\s]*)\s*(тыс|т\b|к\b)/i);
+  if(!m)return null;let n=parseInt(m[1].replace(/\s/g,""));if(m[2]||n<1000)n*=1000;return n;
+}
+function amOrdinal(t){if(/перв|№?\s*1\b/.test(t))return 0;if(/втор|№?\s*2\b/.test(t))return 1;if(/трет|№?\s*3\b/.test(t))return 2;return -1}
+function amBrain(text){
+  const t=text.toLowerCase();
+
+  /* сбор данных: замер */
+  if(amState==="m_name"){amOrd.name=text.trim();amState="m_phone";amBot(`Приятно, ${amOrd.name}! Номер телефона — мастер позвонит согласовать время.`);return}
+  if(amState==="m_phone"){
+    if(text.replace(/\D/g,"").length<7){amBot("В номере не хватает цифр — напишите в формате 8 928 123-45-67.");return}
+    amOrd.phone=text.trim();amState="m_addr";amBot("Записал. Адрес для замера? Город, улица, дом.");return}
+  if(amState==="m_addr"){
+    amOrd.addr=text.trim();amState="m_confirm";
+    amBot(`Проверим заявку на замер:\n\n${amOrd.item?("• "+amOrd.item+"\n"):""}Клиент: ${amOrd.name}, ${amOrd.phone}\nАдрес: ${amOrd.addr}\nЗамер бесплатный, обычно в течение 1–2 дней.\n\nОтправляю мастеру?`);
+    amChips(["Да, отправить","Изменить"]);return}
+  if(amState==="m_confirm"){
+    if(/да|отправ|верно|давай|ок/.test(t)){amState="browse";amChips([]);amMeasureDone();return}
+    if(/нет|измен/.test(t)){amState="m_name";amBot("Хорошо, заново. Как вас зовут?");return}
+    amBot("Напишите «да», если всё верно, или «изменить».");return}
+
+  /* сбор данных: заказ */
+  if(amState==="o_name"){amOrd.name=text.trim();amState="o_phone";amBot(`Приятно, ${amOrd.name}! Теперь номер телефона.`);return}
+  if(amState==="o_phone"){
+    if(text.replace(/\D/g,"").length<7){amBot("В номере не хватает цифр — напишите в формате 8 928 123-45-67.");return}
+    amOrd.phone=text.trim();amState="o_addr";amBot("Адрес доставки? Город, улица, дом.");return}
+  if(amState==="o_addr"){
+    amOrd.addr=text.trim();amState="o_confirm";
+    amBot(`Проверим заказ №${amOrd.num}:\n\n${cart.map(c=>"• "+c.name).join("\n")}\n\nИтого: ${fmt(amTotal())}\nПолучатель: ${amOrd.name}, ${amOrd.phone}\nАдрес: ${amOrd.addr}\n\nВсё верно? Если да — пришлю оплату.`);
+    amChips(["Да, всё верно","Изменить"]);return}
+  if(amState==="o_confirm"){
+    if(/да|верно|оплат|подтвер|ок/.test(t)){amState="browse";amChips([]);amPayStart();return}
+    if(/нет|измен/.test(t)){amState="o_name";amBot("Хорошо, заново. Как вас зовут?");return}
+    amBot("Напишите «да», если всё верно, или «изменить».");return}
+
+  /* калькулятор на заказ */
+  if(amState==="c_size"){
+    let s=/маленьк|небольш|мал/.test(t)?"small":/средн/.test(t)?"mid":/больш|крупн/.test(t)?"big":null;
+    if(!s){amBot("Подскажите размер: маленькая, средняя или большая?");return}
+    amCalc.size=s;amState="c_class";
+    amBot("И какой класс материалов смотрим?");
+    amChips(["Эконом","Стандарт","Премиум"]);return}
+  if(amState==="c_class"){
+    let c=/эконом/.test(t)?"econom":/стандарт|средн/.test(t)?"mid":/премиум|люкс/.test(t)?"premium":null;
+    if(!c){amBot("Выберите: эконом, стандарт или премиум.");return}
+    amCalc.cls=c;amState="browse";
+    const names={kitchen:"Кухня",wardrobe:"Шкаф",sofa:"Мягкая мебель",other:"Изделие"};
+    amBot(`${names[amCalcType]} · ${amCalc.size==="small"?"небольшая":amCalc.size==="mid"?"средняя":"большая"} · ${amCalc.cls==="econom"?"эконом":amCalc.cls==="mid"?"стандарт":"премиум"} — ориентировочно ${amRange(amCalcType,amCalc.size,amCalc.cls)}.\n\nТочную цену назовёт мастер после бесплатного замера. Записать вас?`);
+    amChips(["Да, записаться на замер","Посмотреть готовую мебель"]);return}
+
+  /* browse */
+  if(/замер|записа/.test(t)){amState="m_name";amBot("Отлично, запишу на бесплатный замер. Как вас зовут?");amChips([]);return}
+  if(/оформ|заказ|купить|оплат/.test(t)&&!/показ/.test(t)){
+    if(!cart.length){amBot("Корзина пока пустая. Скажите, что ищете — подберу, и сразу оформим.");amChips(["Диваны","Кровати","Шкафы"]);return}
+    amState="o_name";amBot(`В корзине ${cart.length} позиции на ${fmt(amTotal())}. Оформляем!\n\nКак вас зовут?`);amChips([]);return}
+  if(/рассчит|расчёт|расчет|сколько стоит|посчита|стоимост|цена кухни/.test(t)){
+    amCalcType="kitchen";
+    for(const[w,ty]of Object.entries(AMTYPE)){if(t.includes(w)){amCalcType=ty;break}}
+    amState="c_size";
+    amBot(`Посчитаем${amCalcType==="kitchen"?" кухню":""}. Какой размер — маленькая, средняя или большая?`);
+    amChips(["Маленькая","Средняя","Большая"]);return}
+  const oi=amOrdinal(t);
+  if(/беру|возьму|добавь|давай|хочу (перв|втор|трет)|эт(от|у)/.test(t)&&amShown.length){
+    const id=oi>=0&&amShown[oi]?amShown[oi]:amShown[0];
+    amAdd(id,null);return}
+  if(/ещё|еще|друго|показ/.test(t)&&amShown.length){
+    const cat=products.find(x=>x.id===amShown[0]).cat;
+    const rest=products.filter(p=>p.cat===cat&&!amShown.includes(p.id)).slice(0,3).map(p=>p.id);
+    if(rest.length){amBot("Вот ещё:");amShow(rest)}
+    else amBot("В этой категории это всё, остальное делаем на заказ под ваши размеры. Посчитать?");
+    return}
+  let cat=null;for(const[k,ws]of Object.entries(AMW)){if(ws.some(w=>t.includes(w))){cat=k;break}}
+  const bud=amBudget(t);
+  if(cat||bud){
+    let list=products.filter(p=>(!cat||p.cat===cat)&&(!bud||p.price<=bud));
+    if(!list.length){
+      amBot(`Готовых вариантов${bud?" в бюджет "+fmt(bud):""} нет, но можем сделать на заказ — часто выходит выгоднее. Посчитать примерную стоимость?`);
+      amChips(["Рассчитать стоимость","Показать всё готовое"]);return}
+    list.sort((a,b)=>a.price-b.price);
+    amBot(cat==="kitchen"?"Наши кухни — это примеры работ, каждую делаем под ваше помещение:":"Вот что подойдёт:");
+    amShow(list.slice(0,3).map(p=>p.id));
+    amChips(cat==="kitchen"?["Рассчитать мою кухню","Записаться на замер"]:["Беру первый","Показать ещё","Оформить заказ"]);return}
+  if(/салам|привет|здравств|ассалам/.test(t)){amBot("Ваалейкум ассалам! Что подбираем — кухню, диван, кровать, шкаф? Могу посчитать и на заказ.");return}
+  if(/доставк/.test(t)){amBot("Доставка по Махачкале и окрестностям, сборка нашими мастерами, гарантия 3 года. Что-то присмотрели?");return}
+  if(/гаранти/.test(t)){amBot("Гарантия 3 года на всю мебель — своё производство, отвечаем за качество. Что вас интересует?");return}
+  amBot("Подскажите, что ищете: кухня, диван, кровать или шкаф? Могу посчитать мебель на заказ — напишите, например, «рассчитать кухню».");
+  amChips(["Кухня — рассчитать","Диваны","Шкафы"]);
+}
+
+/* ══ ЗАМЕР: ЗАЯВКА ══ */
+function amMeasureDone(){
+  amBot(`Готово, ${amOrd.name}! Заявка на замер отправлена ✅\nМастер позвонит вам по номеру ${amOrd.phone} в течение дня и согласует время.`);
+  amNotify(`📐 ЗАЯВКА НА ЗАМЕР\n\n${amOrd.item?("Интересует: "+amOrd.item+"\n"):""}Клиент: ${amOrd.name}\nТел: ${amOrd.phone}\nАдрес: ${amOrd.addr}\n\n— оформлено ИИ-консультантом Мурадом`);
+  amChips(["Посмотреть готовую мебель","Рассчитать ещё"]);
+}
+
+/* ══ ОПЛАТА (тестовый режим) ══ */
+function amPayStart(){
+  const box=document.getElementById("amPay");
+  box.innerHTML=`
+    <div class="h"><b>Оплата заказа</b><span class="am-tag">Тестовый режим</span></div>
+    <div class="o">Заказ №${amOrd.num} · Мебель Алиев</div>
+    <div class="s">${fmt(amTotal())}</div>
+    <button class="am-go" id="amGo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Оплатить через СБП</button>
+    <button class="am-cx" onclick="document.getElementById('amPw').classList.remove('on')">Отмена</button>`;
+  document.getElementById("amPw").classList.add("on");
+  document.getElementById("amGo").onclick=amPayGo;
+  amBot("Отправил счёт на оплату 👆 В демо-режиме деньги не списываются.");
+}
+function amPayGo(){
+  const b=document.getElementById("amGo");
+  b.disabled=true;b.innerHTML='<span class="am-sp"></span> Обработка…';
+  setTimeout(()=>{
+    document.getElementById("amPay").innerHTML=`
+      <div class="am-done">
+        <div class="ok"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M4 12.5 10 18 20 6.5"/></svg></div>
+        <b>Оплата прошла</b>
+        <p>Заказ №${amOrd.num} · ${fmt(amTotal())}<br>Чек отправлен в чат</p>
+      </div>`;
+    setTimeout(amFinish,1100);
+  },1600);
+}
+function amFinish(){
+  document.getElementById("amPw").classList.remove("on");
+  const r=document.createElement("div");r.className="am-rec";
+  r.innerHTML=`<div class="t">КАССОВЫЙ ЧЕК · ЗАКАЗ №${amOrd.num}</div>
+    ${cart.map(c=>`<div class="r"><span>${c.name}</span><span>${fmt(c.price)}</span></div>`).join("")}
+    <div class="r tt"><span>Итого</span><span>${fmt(amTotal())}</span></div>
+    <div class="nn">Оплата: СБП · тестовый режим, деньги не списаны.<br>В боевой версии чек формирует онлайн-касса (54-ФЗ).</div>`;
+  amBody.appendChild(r);amScroll();
+  amBot(`Готово, ${amOrd.name}! Заказ №${amOrd.num} оплачен ✅\nПередаю в доставку — с вами свяжутся для согласования времени.`);
+  amNotify(`🚚 НОВЫЙ ЗАКАЗ №${amOrd.num}\n\n${cart.map(c=>"• "+c.name+" — "+fmt(c.price)).join("\n")}\n\nИтого: ${fmt(amTotal())} (оплачено, тест)\n\nКлиент: ${amOrd.name}\nТел: ${amOrd.phone}\nАдрес: ${amOrd.addr}\n\n— оформлено ИИ-консультантом Мурадом`);
+  cart=[];document.getElementById("cartBadge").textContent=0;renderCart();renderProducts(currentFilter);amShown=[];
+  amChips(["Подобрать ещё"]);
+}
+async function amNotify(msg){
+  if(AM_TG_TOKEN&&AM_TG_CHAT){
+    try{
+      await fetch(`https://api.telegram.org/bot${AM_TG_TOKEN}/sendMessage`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:AM_TG_CHAT,text:msg})});
+      amSys("Заявка ушла менеджеру в Telegram ✓");
+    }catch(e){amSys("Telegram не ответил — проверьте токен. Заявка:\n\n"+msg)}
+  }else amSys("Заявка менеджеру (демо, Telegram не подключён):\n\n"+msg);
+}
+</script>
+<!-- ═══════════ /МУРАД ═══════════ -->
+
 </body>
 </html>
