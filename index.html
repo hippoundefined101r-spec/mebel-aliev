@@ -930,12 +930,12 @@ const amSys_=()=>"Ты — Мурад, консультант мебельног
 "Корзина клиента сейчас: "+(cart.length?cart.map(c=>c.name).join(", ")+" (итого "+fmt(amTotal())+")":"пустая")+". "+
 "ТОН: тёплый, гостеприимный, живой — как хороший продавец, который знает товар наизусть и искренне хочет помочь. Простой человеческий язык, без канцелярита и без панибратства. Эмодзи не используй. Отвечай коротко, 1-3 предложения, один вопрос за раз. Зеркаль гостя: на ты отвечай на ты, на вы — на вы. На салам/ассаляму алейкум отвечай: Ваалейкум ассалям. Цены называй смело. Чего нет — честно говори и предлагай сделать на заказ. На вопросы не про мебель вежливо возвращай к теме. "+
 "ПРОЦЕСС: кухни и мебель на заказ не продаются по фиксированной цене — узнай размер и класс, назови вилку и веди на бесплатный замер. Готовая мебель (диваны, кровати, шкафы): подбор → корзина → для оформления собери имя, телефон и адрес по одному вопросу → покажи состав и сумму, спроси подтверждение → оплата. "+
-"ИНСТРУМЕНТЫ — когда нужно, добавляй тег В САМЫЙ КОНЕЦ ответа (клиент тегов не видит): "+
-"[SHOW:id,id] — показать карточки конкретных готовых моделей, которые советуешь (до 3). "+
-"[ADD:id] — клиент явно согласился взять товар — добавить в корзину. "+
+"ИНСТРУМЕНТЫ — добавляй тег В САМЫЙ КОНЕЦ ответа, клиент тегов не видит. В тегах ТОЛЬКО ЦИФРОВЫЕ id из каталога, строго такой формат: "+
+"[SHOW:4] или [SHOW:4,6] — показать карточки товаров. ОБЯЗАТЕЛЬНО ставь этот тег каждый раз, когда упоминаешь или советуешь конкретную модель — не спрашивай, показать ли карточку, а сразу показывай. "+
+"[ADD:4] — клиент явно согласился взять товар — добавить в корзину. "+
 "[ORDER:Имя|Телефон|Адрес] — имя, телефон и адрес собраны и клиент подтвердил заказ готовой мебели — после тега ему придёт окно оплаты. "+
 "[MEASURE:Имя|Телефон|Адрес|Что интересует] — данные собраны для записи на замер (кухни и мебель на заказ). "+
-"Не выдумывай товары, id и цены вне данных. Теги используй только когда действие реально нужно.";
+"Не выдумывай товары, id и цены вне данных.";
 async function amAI(text){
   amHist.push({role:"user",content:text});
   const ctl=new AbortController();
@@ -954,6 +954,17 @@ async function amAI(text){
   if(!raw)throw new Error("пустой ответ");
   amHist.push({role:"assistant",content:raw});
   /* вырезаем и исполняем теги */
+  console.log("[Мурад raw]",raw);
+  const findProd=s=>{
+    s=s.trim();
+    if(/^\d+$/.test(s))return products.find(x=>x.id===parseInt(s));
+    const sl=s.toLowerCase();
+    let p=products.find(x=>x.name.toLowerCase()===sl)||
+          products.find(x=>x.name.toLowerCase().includes(sl)||sl.includes(x.name.toLowerCase()));
+    if(p)return p;
+    const d=s.replace(/[^\d]/g,"");
+    return d?products.find(x=>x.id===parseInt(d)):null;
+  };
   const tags=[...raw.matchAll(/\[(SHOW|ADD|ORDER|MEASURE):([^\]]*)\]/gi)];
   const say=raw.replace(/\[(SHOW|ADD|ORDER|MEASURE):[^\]]*\]/gi,"").trim();
   amTyping(false);
@@ -961,13 +972,14 @@ async function amAI(text){
   for(const tg of tags){
     const cmd=tg[1].toUpperCase(),arg=tg[2].trim();
     if(cmd==="SHOW"){
-      const ids=arg.split(",").map(s=>parseInt(s)).filter(id=>products.find(p=>p.id===id));
+      const ids=[];
+      arg.split(",").forEach(s=>{const p=findProd(s);if(p&&!ids.includes(p.id))ids.push(p.id)});
       if(ids.length)amShow(ids);
     }
     if(cmd==="ADD"){
-      arg.split(",").map(s=>parseInt(s)).forEach(id=>{
-        const p=products.find(x=>x.id===id);
-        if(p&&p.cat!=="kitchen"&&!cart.find(c=>c.id===id)){
+      arg.split(",").forEach(s=>{
+        const p=findProd(s);
+        if(p&&p.cat!=="kitchen"&&!cart.find(c=>c.id===p.id)){
           cart.push({...p});
           const b=document.getElementById("cartBadge");b.textContent=cart.length;
           renderCart();renderProducts(currentFilter);
