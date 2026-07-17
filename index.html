@@ -848,6 +848,8 @@ const AM_BASE="https://blank.aigcbest.top";
 const AM_MODEL="claude-sonnet-4-6";
 const AM_TG_TOKEN="";
 const AM_TG_CHAT="";
+/* Номер кошелька ЮMoney (4100...). Пусто = тестовая оплата. */
+const AM_YOOMONEY="";
 
 const amBody=document.getElementById("amBody"),amInp=document.getElementById("amInput");
 let amOpened=false,amShown=[],amState="browse",amCalcType=null,amCalc={};
@@ -1080,8 +1082,9 @@ function amMeasureDone(){
   amChips(["Посмотреть готовую мебель","Рассчитать ещё"]);
 }
 
-/* ══ ОПЛАТА (тестовый режим) ══ */
+/* ══ ОПЛАТА ══ */
 function amPayStart(){
+  if(AM_YOOMONEY){amRealPay();return}
   const box=document.getElementById("amPay");
   box.innerHTML=`
     <div class="h"><b>Оплата заказа</b><span class="am-tag">Тестовый режим</span></div>
@@ -1127,6 +1130,62 @@ async function amNotify(msg){
     }catch(e){amSys("Telegram не ответил — проверьте токен. Заявка:\n\n"+msg)}
   }else amSys("Заявка менеджеру (демо, Telegram не подключён):\n\n"+msg);
 }
+
+/* ══ РЕАЛЬНАЯ ОПЛАТА (ЮMoney) ══ */
+function amRealPay(){
+  const snap={num:amOrd.num,name:amOrd.name,phone:amOrd.phone,addr:amOrd.addr,
+    items:cart.map(c=>({name:c.name,price:c.price})),total:amTotal()};
+  try{sessionStorage.setItem("amPending",JSON.stringify(snap))}catch(e){}
+  const box=document.getElementById("amPay");
+  box.innerHTML=`
+    <div class="h"><b>Оплата заказа</b><span class="am-tag" style="background:#EAF3EC;color:#3f6b4c;border-color:#bcd8c4">Оплата картой</span></div>
+    <div class="o">Заказ №${amOrd.num} · Мебель Алиев</div>
+    <div class="s">${fmt(amTotal())}</div>
+    <button class="am-go" id="amGo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Оплатить картой</button>
+    <button class="am-cx" onclick="document.getElementById('amPw').classList.remove('on')">Отмена</button>
+    <div style="font-size:.7rem;color:var(--ts);margin-top:10px;text-align:center;line-height:1.5">Оплата через ЮMoney. После оплаты вы вернётесь на сайт — чек появится в чате.</div>`;
+  document.getElementById("amPw").classList.add("on");
+  document.getElementById("amGo").onclick=()=>{
+    const f=document.createElement("form");
+    f.method="POST";f.action="https://yoomoney.ru/quickpay/confirm.xml";
+    const fields={
+      receiver:AM_YOOMONEY,
+      "quickpay-form":"shop",
+      targets:"Заказ №"+amOrd.num+" · Мебель Алиев",
+      paymentType:"AC",
+      sum:amTotal(),
+      label:"order-"+amOrd.num,
+      successURL:location.origin+location.pathname+"?amPaid="+amOrd.num,
+      formcomment:"Мебель Алиев",
+      "short-dest":"Заказ №"+amOrd.num
+    };
+    for(const[k,v]of Object.entries(fields)){const i=document.createElement("input");i.type="hidden";i.name=k;i.value=v;f.appendChild(i)}
+    document.body.appendChild(f);f.submit();
+  };
+  amBot("Отправил счёт — оплата картой через ЮMoney. После оплаты вы вернётесь сюда, чек будет ждать в чате.");
+}
+/* возврат с платёжной страницы */
+(function(){
+  const m=location.search.match(/[?&]amPaid=(\d+)/);
+  if(!m)return;
+  let snap=null;try{snap=JSON.parse(sessionStorage.getItem("amPending")||"null")}catch(e){}
+  history.replaceState(null,"",location.pathname);
+  if(!snap||String(snap.num)!==m[1])return;
+  try{sessionStorage.removeItem("amPending")}catch(e){}
+  cart=[];document.getElementById("cartBadge").textContent=0;renderCart();renderProducts(currentFilter);
+  amOpened=true;
+  document.getElementById("amChat").classList.add("open");
+  const r=document.createElement("div");r.className="am-rec";
+  r.innerHTML=`<div class="t">ЧЕК ОБ ОПЛАТЕ · ЗАКАЗ №${snap.num}</div>
+    ${snap.items.map(i=>`<div class="r"><span>${i.name}</span><span>${fmt(i.price)}</span></div>`).join("")}
+    <div class="r tt"><span>Итого</span><span>${fmt(snap.total)}</span></div>
+    <div class="nn">Оплата: ЮMoney (карта). Официальный чек 54-ФЗ формирует онлайн-касса — подключается в боевой версии.</div>`;
+  amBody.appendChild(r);
+  amBot(`${snap.name}, оплата получена! Заказ №${snap.num} передаю в доставку — с вами свяжутся для согласования времени.`);
+  amNotify(`🚚 НОВЫЙ ЗАКАЗ №${snap.num} — ОПЛАЧЕН (ЮMoney)\n\n${snap.items.map(i=>"• "+i.name+" — "+fmt(i.price)).join("\n")}\n\nИтого: ${fmt(snap.total)}\n\nКлиент: ${snap.name}\nТел: ${snap.phone}\nАдрес: ${snap.addr}\n\n— оформлено ИИ-консультантом Мурадом`);
+  amChips(["Подобрать ещё"]);
+  amScroll();
+})();
 </script>
 <!-- ═══════════ /МУРАД ═══════════ -->
 
