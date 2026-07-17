@@ -850,6 +850,8 @@ const AM_TG_TOKEN="";
 const AM_TG_CHAT="";
 /* Номер кошелька ЮMoney (4100...). Пусто = тестовая оплата. */
 const AM_YOOMONEY="";
+/* Демо-сумма к оплате в рублях. 0 = списывать полную стоимость заказа. */
+const AM_DEMO_SUM=10;
 
 const amBody=document.getElementById("amBody"),amInp=document.getElementById("amInput");
 let amOpened=false,amShown=[],amState="browse",amCalcType=null,amCalc={};
@@ -1133,15 +1135,17 @@ async function amNotify(msg){
 
 /* ══ РЕАЛЬНАЯ ОПЛАТА (ЮMoney) ══ */
 function amRealPay(){
+  const paySum=AM_DEMO_SUM>0?AM_DEMO_SUM:amTotal();
   const snap={num:amOrd.num,name:amOrd.name,phone:amOrd.phone,addr:amOrd.addr,
-    items:cart.map(c=>({name:c.name,price:c.price})),total:amTotal()};
+    items:cart.map(c=>({name:c.name,price:c.price})),total:amTotal(),paid:paySum};
   try{sessionStorage.setItem("amPending",JSON.stringify(snap))}catch(e){}
   const box=document.getElementById("amPay");
   box.innerHTML=`
     <div class="h"><b>Оплата заказа</b><span class="am-tag" style="background:#EAF3EC;color:#3f6b4c;border-color:#bcd8c4">Оплата картой</span></div>
     <div class="o">Заказ №${amOrd.num} · Мебель Алиев</div>
     <div class="s">${fmt(amTotal())}</div>
-    <button class="am-go" id="amGo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Оплатить картой</button>
+    ${AM_DEMO_SUM>0?`<div style="font-size:.78rem;color:var(--tm);margin:-10px 0 14px">К оплате в демо-режиме: <b>${fmt(AM_DEMO_SUM)}</b></div>`:""}
+    <button class="am-go" id="amGo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Оплатить картой${AM_DEMO_SUM>0?" — "+fmt(AM_DEMO_SUM):""}</button>
     <button class="am-cx" onclick="document.getElementById('amPw').classList.remove('on')">Отмена</button>
     <div style="font-size:.7rem;color:var(--ts);margin-top:10px;text-align:center;line-height:1.5">Оплата через ЮMoney. После оплаты вы вернётесь на сайт — чек появится в чате.</div>`;
   document.getElementById("amPw").classList.add("on");
@@ -1153,7 +1157,7 @@ function amRealPay(){
       "quickpay-form":"shop",
       targets:"Заказ №"+amOrd.num+" · Мебель Алиев",
       paymentType:"AC",
-      sum:amTotal(),
+      sum:paySum,
       label:"order-"+amOrd.num,
       successURL:location.origin+location.pathname+"?amPaid="+amOrd.num,
       formcomment:"Мебель Алиев",
@@ -1179,7 +1183,7 @@ function amRealPay(){
   r.innerHTML=`<div class="t">ЧЕК ОБ ОПЛАТЕ · ЗАКАЗ №${snap.num}</div>
     ${snap.items.map(i=>`<div class="r"><span>${i.name}</span><span>${fmt(i.price)}</span></div>`).join("")}
     <div class="r tt"><span>Итого</span><span>${fmt(snap.total)}</span></div>
-    <div class="nn">Оплата: ЮMoney (карта). Официальный чек 54-ФЗ формирует онлайн-касса — подключается в боевой версии.</div>`;
+    <div class="nn">Оплата: ЮMoney (карта).${snap.paid&&snap.paid!==snap.total?" Списано в демо-режиме: "+fmt(snap.paid)+".":""}<br>Официальный чек 54-ФЗ формирует онлайн-касса — подключается в боевой версии.</div>`;
   amBody.appendChild(r);
   amBot(`${snap.name}, оплата получена! Заказ №${snap.num} передаю в доставку — с вами свяжутся для согласования времени.`);
   amNotify(`🚚 НОВЫЙ ЗАКАЗ №${snap.num} — ОПЛАЧЕН (ЮMoney)\n\n${snap.items.map(i=>"• "+i.name+" — "+fmt(i.price)).join("\n")}\n\nИтого: ${fmt(snap.total)}\n\nКлиент: ${snap.name}\nТел: ${snap.phone}\nАдрес: ${snap.addr}\n\n— оформлено ИИ-консультантом Мурадом`);
